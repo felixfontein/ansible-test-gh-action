@@ -4,6 +4,9 @@ name: 🧪
 on:   # yamllint disable-line rule:truthy
   push:
   pull_request:
+  # Run once per week (Monday at 10:00 UTC)
+  schedule:
+    - cron: '0 10 * * 1'
   workflow_dispatch:
 
 jobs:
