@@ -328,7 +328,7 @@ runs:
                       test.strip(),
                   ])
           if gha_sanity_skip_tests:
-              for test in gha_sanity_tests.split(','):
+              for test in gha_sanity_skip_tests.split(','):
                   command.extend([
                       '--skip-test',
                       test.strip(),
