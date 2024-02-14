@@ -640,7 +640,7 @@ runs:
 
   - name: Produce markdown test summary from JUnit
     if: always()
-    uses: test-summary/action@v2
+    uses: test-summary/action@98d5ecd2de9823412dd12a2d1e02fb954284f4c3
     with:
       # NOTE: The path is borrowed from
       # https://github.com/ansible/ansible/blob/71adb02/.azure-pipelines/scripts/process-results.sh#L6-L10
