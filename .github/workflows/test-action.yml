@@ -2,7 +2,10 @@
 name: 🧪
 
 on:   # yamllint disable-line rule:truthy
+  merge_group:
   push:
+    branches-ignore:
+    - gh-readonly-queue/**  # Temporary merge queue-related GH-made branches
   pull_request:
   # Run once per week (Monday at 10:00 UTC)
   schedule:

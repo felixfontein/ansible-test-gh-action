@@ -18,7 +18,7 @@ To use the action add the following step to your workflow file (e.g.
   with:
     ansible-core-version: stable-2.14
     pre-test-cmd: echo This runs before the ansible-test invocation
-    target-python-version: 3.9
+    target-python-version: 3.11
     controller-python-version: auto
     testing-type: integration
     test-deps: ansible.netcommon
@@ -32,7 +32,7 @@ To use the action add the following step to your workflow file (e.g.
   with:
     ansible-core-version: stable-2.14
     pre-test-cmd: echo This runs before the ansible-test invocation
-    target-python-version: 3.9
+    target-python-version: 3.11
     testing-type: units
     test-deps: >-
       ansible.netcommon
@@ -88,6 +88,11 @@ Whether to collect and upload coverage information. Can be set to
 `always`, `never`, and `auto`. The value `auto` will upload coverage
 information except when `pull-request-change-detection` is set to `true`
 and the action is called from a Pull Request. **(DEFAULT: `auto`)**
+
+> [!NOTE]
+> Coverage is only generated for modules and plugins. If your collection does
+> not contain any modules or plugins, set this to `never` to avoid errors in
+> the codecov upload step due to no coverage information being available.
 
 
 ### `docker-image`
@@ -226,7 +231,8 @@ Comma-separated list of sanity tests to skip.
 
 ### `sanity-allow-disabled`
 
-Allow sanity tests to run which are disabled by default.
+Allow running sanity tests that are disabled by default.
+**(DEFAULT: `false`)**
 
 
 ## Related community projects

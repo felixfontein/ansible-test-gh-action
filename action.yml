@@ -86,12 +86,14 @@ inputs:
       Replace `python-version` with `origin-python-version`.
       It is scheduled to be removed in version 3 of this action.
   sanity-tests:
-    description: Comma-separated list of sanity tests to run. If not present, all applicable tests are run.
+    description: >-
+      Comma-separated list of sanity tests to run.
+      If not present, all applicable tests are run.
   sanity-skip-tests:
     description: Comma-separated list of sanity tests to skip.
   sanity-allow-disabled:
     description: Allow sanity tests to run which are disabled by default.
-    default: false
+    default: 'false'
   target:
     description: ansible-test TARGET
   target-python-version:
@@ -101,7 +103,6 @@ inputs:
     required: true
   test-deps:
     description: Test dependencies to install along with this collection
-
 outputs:
   ansible-playbook-executable:
     description: Path to the auto-installed `ansible-playbook` executable
@@ -178,21 +179,26 @@ runs:
       if origin_python_version == 'auto':
           # Determine the maximum Python version supported by the
           # given ansible-core version.
-          python_version_fallback_for_devel = '3.11'
           python_version_map = {
-              'stable-2.9': '3.8',
-              'stable-2.10': '3.9',
-              'stable-2.11': '3.9',
-              'stable-2.12': '3.10',
-              'stable-2.13': '3.10',
-              'stable-2.14': '3.11',
-              'stable-2.15': '3.11',
+              'stable-2.9': (3, 8),
+              'stable-2.10': (3, 9),
+              'stable-2.11': (3, 9),
+              'stable-2.12': (3, 10),
+              'stable-2.13': (3, 10),
+              'stable-2.14': (3, 11),
+              'stable-2.15': (3, 11),
           }
-          origin_python_version = python_version_map.get(
+          python_version_fallback_for_devel = max(
+              set(python_version_map.values()),
+          )
+          origin_python_version_tuple = python_version_map.get(
               ansible_core_version,
               # For any non-stable branch, we assume
               # the latest version supported by 'devel':
               python_version_fallback_for_devel,
+          )
+          origin_python_version = '.'.join(
+              map(str, origin_python_version_tuple),
           )
 
       # Set computed origin-python-version
@@ -228,6 +234,7 @@ runs:
       pip install
       PyYAML
       --disable-pip-version-check
+      --prefer-binary
       --user
       ;
       set +x
@@ -245,11 +252,13 @@ runs:
       GHA_CONTROLLER_PYTHON_VERSION: ${{ inputs.controller-python-version }}
       GHA_COVERAGE: ${{ inputs.coverage }}
       GHA_DOCKER_IMAGE: ${{ inputs.docker-image }}
-      GHA_INTEGRATION_CONTINUE_ON_ERROR: ${{ inputs.integration-continue-on-error }}
+      GHA_INTEGRATION_CONTINUE_ON_ERROR: >-
+        ${{ inputs.integration-continue-on-error }}
       GHA_INTEGRATION_DIFF: ${{ inputs.integration-diff }}
       GHA_INTEGRATION_RETRY_ON_ERROR: ${{ inputs.integration-retry-on-error }}
       GHA_PULL_REQUEST_BASE_REF: ${{ github.event.pull_request.base.ref || '' }}
-      GHA_PULL_REQUEST_CHANGE_DETECTION: ${{ inputs.pull-request-change-detection }}
+      GHA_PULL_REQUEST_CHANGE_DETECTION: >-
+        ${{ inputs.pull-request-change-detection }}
       GHA_SANITY_TESTS: ${{ inputs.sanity-tests }}
       GHA_SANITY_SKIP_TESTS: ${{ inputs.sanity-skip-tests }}
       GHA_SANITY_ALLOW_DISABLED: ${{ inputs.sanity-allow-disabled }}
@@ -269,22 +278,33 @@ runs:
       def set_output(name, value):
           with OUTPUTS_FILE_PATH.open(FILE_APPEND_MODE) as outputs_file:
               outputs_file.writelines(f'{name}={value}{os.linesep}')
-          print(f'GHA output {name}: {value}')
 
       # Input from GHA
       gha_ansible_core_version = os.environ['GHA_ANSIBLE_CORE_VERSION']
       gha_container_network = os.environ['GHA_CONTAINER_NETWORK']
-      gha_controller_python_version = os.environ['GHA_CONTROLLER_PYTHON_VERSION']
+      gha_controller_python_version = (
+          os.environ['GHA_CONTROLLER_PYTHON_VERSION']
+      )
       gha_coverage = os.environ['GHA_COVERAGE']
       gha_docker_image = os.environ['GHA_DOCKER_IMAGE']
-      gha_integration_continue_on_error = json.loads(os.environ['GHA_INTEGRATION_CONTINUE_ON_ERROR'])
-      gha_integration_diff = json.loads(os.environ['GHA_INTEGRATION_DIFF'])
-      gha_integration_retry_on_error = json.loads(os.environ['GHA_INTEGRATION_RETRY_ON_ERROR'])
+      gha_integration_continue_on_error = json.loads(
+          os.environ['GHA_INTEGRATION_CONTINUE_ON_ERROR']
+      )
+      gha_integration_diff = json.loads(
+          os.environ['GHA_INTEGRATION_DIFF']
+      )
+      gha_integration_retry_on_error = json.loads(
+          os.environ['GHA_INTEGRATION_RETRY_ON_ERROR']
+      )
       gha_pull_request_branch = os.environ['GHA_PULL_REQUEST_BASE_REF']
-      gha_pull_request_change_detection = json.loads(os.environ['GHA_PULL_REQUEST_CHANGE_DETECTION'])
+      gha_pull_request_change_detection = json.loads(
+          os.environ['GHA_PULL_REQUEST_CHANGE_DETECTION']
+      )
       gha_sanity_tests = os.environ['GHA_SANITY_TESTS']
       gha_sanity_skip_tests = os.environ['GHA_SANITY_SKIP_TESTS']
-      gha_sanity_allow_disabled = json.loads(os.environ['GHA_SANITY_ALLOW_DISABLED'])
+      gha_sanity_allow_disabled = json.loads(
+          os.environ['GHA_SANITY_ALLOW_DISABLED']
+      ) is True
       gha_target = os.environ['GHA_TARGET']
       gha_target_python_version = os.environ['GHA_TARGET_PYTHON_VERSION']
       gha_testing_type = os.environ['GHA_TESTING_TYPE']
@@ -301,7 +321,9 @@ runs:
       command = [gha_testing_type, '-v', '--color']
 
       # Compute coverage and change detection arguments
-      has_change_detection = gha_pull_request_branch and gha_pull_request_change_detection
+      has_change_detection = (
+          gha_pull_request_branch and gha_pull_request_change_detection
+      )
       if has_change_detection:
           if gha_coverage == 'auto':
               print(
@@ -348,15 +370,20 @@ runs:
 
       if (
           gha_testing_type == 'integration'
-          and gha_ansible_core_version not in {'stable-2.9', 'stable-2.10', 'stable-2.11'}
+          and gha_ansible_core_version not in {
+              'stable-2.9', 'stable-2.10', 'stable-2.11'
+          }
           and gha_target_python_version
-          and gha_controller_python_version not in {'auto', gha_target_python_version}
+          and gha_controller_python_version not in {
+              'auto', gha_target_python_version
+          }
       ):
           command.extend([
               '--controller',
               f"docker:default,python={gha_controller_python_version}",
               '--target',
-              f"docker:{gha_docker_image or 'default'},python={gha_target_python_version}",
+              f"docker:{gha_docker_image or 'default'},"
+              f"python={gha_target_python_version}",
           ])
       else:
           command.extend([
@@ -621,6 +648,24 @@ runs:
   - name: Log the next step action
     if: steps.ansible-test-command.outputs.has-coverage == 'true'
     run: >-
+      echo ▷ Generating a coverage report only grouped by command...
+    shell: bash
+  - name: Generate a coverage report only grouped by command
+    if: steps.ansible-test-flags.outputs.coverage-arg != ''
+    run: >-
+      set -x
+      ;
+      ~/.local/bin/ansible-test coverage xml
+      -v --requirements
+      --group-by command
+      ;
+      set +x
+    shell: bash
+    working-directory: ${{ steps.collection-metadata.outputs.checkout-path }}
+
+  - name: Log the next step action
+    if: steps.ansible-test-flags.outputs.coverage-arg != ''
+    run: >-
       echo ▷ Sending the coverage data over to
       https://codecov.io/gh/${{ github.repository }}...
     shell: bash
@@ -659,12 +704,12 @@ runs:
     run: >-
       set +x
       ;
-      compgen -G "${{
+      ls -1 '${{
         steps.collection-metadata.outputs.checkout-path
       }}/tests/output/reports/coverage=${{
         inputs.testing-type
-      }}=*.xml"
-      && ( echo "present=true" >> ${GITHUB_OUTPUT} )
+      }}.xml'
+      && ( echo "present=true" >> "${GITHUB_OUTPUT}" )
       ;
       exit 0
     shell: bash
@@ -678,7 +723,7 @@ runs:
           steps.collection-metadata.outputs.checkout-path
         }}/tests/output/reports/coverage=${{
           inputs.testing-type
-        }}=python-*.xml
+        }}.xml
       format: markdown
       output: both
   # Ref: https://github.com/irongut/CodeCoverageSummary/issues/66
