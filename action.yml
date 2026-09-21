@@ -682,7 +682,7 @@ runs:
       Send the coverage data over to
       https://codecov.io/gh/${{ github.repository }}
     if: steps.ansible-test-command.outputs.has-coverage == 'true'
-    uses: codecov/codecov-action@v7.0.0
+    uses: codecov/codecov-action@v7.1.1
     with:
       files: >-
         ${{
